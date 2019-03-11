@@ -142,7 +142,7 @@
                 <!-- ##DATASOURCES## -->
                 <xa-datasource jndi-name="java:jboss/datasources/PostgresXADS" pool-name="PostgresXADS">
                     <xa-datasource-property name="ServerName">
-                        external-db
+                        external-db.test.svc.cluster.local
                     </xa-datasource-property>
                     <xa-datasource-property name="PortNumber">
                         5432
