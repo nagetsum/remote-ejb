@@ -17,7 +17,7 @@ public class RemoteABean implements RemoteA {
 
     private static final String INSERT_SQL = "INSERT INTO book (id, insertedBy, title) VALUES (?, ?, ?)";
 
-    @Resource(lookup="java:jboss/datasources/PostgresXADS")
+    @Resource(lookup="java:jboss/datasources/PostgresDS")
     private DataSource ds;
 
     private RemoteB remoteB;

@@ -140,6 +140,20 @@
         <subsystem xmlns="urn:jboss:domain:datasources:5.0">
             <datasources>
                 <!-- ##DATASOURCES## -->
+                <datasource jta="true" jndi-name="java:jboss/datasources/PostgresDS" pool-name="PostgresDS" enabled="true">
+                    <connection-url>jdbc:postgresql://external-db.test.svc.cluster.local:5432/test</connection-url>
+                    <driver>postgresql</driver>
+                    <pool>
+                        <min-pool-size>10</min-pool-size>
+                        <initial-pool-size>10</initial-pool-size>
+                        <max-pool-size>10</max-pool-size>
+                        <prefill>true</prefill>
+                    </pool>
+                    <security>
+                        <user-name>postgres</user-name>
+                        <password>postgres</password>
+                    </security>
+                </datasource>
                 <xa-datasource jndi-name="java:jboss/datasources/PostgresXADS" pool-name="PostgresXADS">
                     <xa-datasource-property name="ServerName">
                         external-db.test.svc.cluster.local
