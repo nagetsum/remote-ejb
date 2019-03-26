@@ -5,6 +5,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import java.util.Hashtable;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @WebServlet("/test")
 public class CallEjbServlet extends HttpServlet {
