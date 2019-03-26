@@ -11,14 +11,22 @@ import java.io.IOException;
 @WebServlet("/test")
 public class CallEjbServlet extends HttpServlet {
 
-    @EJB
-    private DelegateBean delegate;
+    private static final AtomicInteger cnt = new AtomicInteger();
 
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse res)
             throws IOException {
 
-        int cnt = delegate.callRemoteBean();
+        Hashtable<String, String> jndiProps = new Hashtable<>();
+        jndiProps.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
+
+        try {
+            Context context = new InitialContext(jndiProps);
+            RemoteA remoteA = (RemoteA) context.lookup("ejb:/remote-ejb-1/RemoteABean!" + RemoteA.class.getName());
+            remoteA.addAndCommit(cnt.incrementAndGet(), "test book " + cnt.get());
+        } catch (NamingException e) {
+            throw new RuntimeException(e);
+        }
 
         res.setContentType("text/plain; charset=utf-8");
         res.getWriter().write("add book done. No: " + cnt);
