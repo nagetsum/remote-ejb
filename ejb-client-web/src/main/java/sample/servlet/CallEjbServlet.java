@@ -10,6 +10,7 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicInteger;
+import sample.ejb.RemoteA;
 
 @WebServlet("/test")
 public class CallEjbServlet extends HttpServlet {
