@@ -48,5 +48,7 @@ public class RemoteABean implements RemoteA {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+
+        throw new RuntimeException("SERIOUS ERROR OCCUR");
     }
 }
