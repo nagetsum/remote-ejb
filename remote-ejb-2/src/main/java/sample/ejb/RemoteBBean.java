@@ -1,13 +1,13 @@
 package sample.ejb;
 
 import javax.annotation.Resource;
-import javax.ejb.Stateless;
+import javax.ejb.Stateful;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-@Stateless
+@Stateful
 public class RemoteBBean implements RemoteB {
 
     private static final String INSERT_SQL = "INSERT INTO book (id, insertedBy, title) VALUES (?, ?, ?)";

@@ -1,13 +1,13 @@
 package sample.ejb;
 
-import javax.ejb.Stateless;
+import javax.ejb.Stateful;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Stateless
+@Stateful
 public class DelegateBean {
 
     private static final AtomicInteger cnt = new AtomicInteger();
@@ -19,7 +19,7 @@ public class DelegateBean {
 
         try {
             Context context = new InitialContext(jndiProps);
-            RemoteA remoteA = (RemoteA) context.lookup("ejb:/remote-ejb-1/RemoteABean!" + RemoteA.class.getName());
+            RemoteA remoteA = (RemoteA) context.lookup("ejb:/remote-ejb-1/RemoteABean!" + RemoteA.class.getName() + "?stateful");
             remoteA.addAndCommit(cnt.incrementAndGet(), "test book " + cnt.get());
         } catch (NamingException e) {
             throw new RuntimeException(e);

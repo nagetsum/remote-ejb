@@ -2,7 +2,7 @@ package sample.ejb;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import javax.ejb.Stateless;
+import javax.ejb.Stateful;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -12,7 +12,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Hashtable;
 
-@Stateless
+@Stateful
 public class RemoteABean implements RemoteA {
 
     private static final String INSERT_SQL = "INSERT INTO book (id, insertedBy, title) VALUES (?, ?, ?)";
@@ -29,7 +29,7 @@ public class RemoteABean implements RemoteA {
 
         try {
             Context context = new InitialContext(jndiProps);
-            this.remoteB = (RemoteB) context.lookup("ejb:/remote-ejb-2/RemoteBBean!" + RemoteB.class.getName());
+            this.remoteB = (RemoteB) context.lookup("ejb:/remote-ejb-2/RemoteBBean!" + RemoteB.class.getName() + "?stateful");
         } catch (NamingException e) {
             e.printStackTrace();
         }
