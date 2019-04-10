@@ -27,7 +27,7 @@ public class CallEjbServlet extends HttpServlet {
 
         try {
             Context context = new InitialContext(jndiProps);
-            RemoteA remoteA = (RemoteA) context.lookup("ejb:/remote-ejb-1/RemoteABean!" + RemoteA.class.getName() + "?stateful");
+            RemoteA remoteA = (RemoteA) context.lookup("ejb:/remote-ejb-1/RemoteABean!" + RemoteA.class.getName());
             remoteA.addAndCommit(cnt.incrementAndGet(), "test book " + cnt.get());
         } catch (NamingException e) {
             throw new RuntimeException(e);
