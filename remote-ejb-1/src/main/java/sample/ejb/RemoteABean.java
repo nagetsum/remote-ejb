@@ -15,10 +15,10 @@ import java.util.Hashtable;
 @Stateful
 public class RemoteABean implements RemoteA {
 
-    private static final String INSERT_SQL = "INSERT INTO book (id, insertedBy, title) VALUES (?, ?, ?)";
+//    private static final String INSERT_SQL = "INSERT INTO book (id, insertedBy, title) VALUES (?, ?, ?)";
 
-    @Resource(lookup="java:jboss/datasources/PostgresDS")
-    private DataSource ds;
+//    @Resource(lookup="java:jboss/datasources/PostgresDS")
+//    private DataSource ds;
 
     private RemoteB remoteB;
 
@@ -38,15 +38,16 @@ public class RemoteABean implements RemoteA {
     @Override
     public void addAndCommit(int id, String bookTitle) {
         remoteB.addAndCommit(id, bookTitle);
+        System.out.println("add book id=" + id + ", bookTitle=" + bookTitle);
 
-        try (Connection conn = ds.getConnection();
-            PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
-            ps.setInt(1, id);
-            ps.setString(2, "RemoteA");
-            ps.setString(3, bookTitle);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+//        try (Connection conn = ds.getConnection();
+//            PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
+//            ps.setInt(1, id);
+//            ps.setString(2, "RemoteA");
+//            ps.setString(3, bookTitle);
+//            ps.executeUpdate();
+//        } catch (SQLException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 }
