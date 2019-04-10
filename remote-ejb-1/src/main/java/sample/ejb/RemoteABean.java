@@ -26,6 +26,7 @@ public class RemoteABean implements RemoteA {
     public void init() {
         Hashtable<String, String> jndiProps = new Hashtable<>();
         jndiProps.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
+        jndiProps.put(Context.PROVIDER_URL,"http-remoting://remote-ejb-2:8080");
 
         try {
             Context context = new InitialContext(jndiProps);

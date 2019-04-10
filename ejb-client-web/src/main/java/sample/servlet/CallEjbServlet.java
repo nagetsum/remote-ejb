@@ -24,6 +24,7 @@ public class CallEjbServlet extends HttpServlet {
 
         Hashtable<String, String> jndiProps = new Hashtable<>();
         jndiProps.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
+        jndiProps.put(Context.PROVIDER_URL,"http-remoting://remote-ejb-1:8080");
 
         try {
             Context context = new InitialContext(jndiProps);
