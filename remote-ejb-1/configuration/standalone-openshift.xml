@@ -657,7 +657,7 @@
             <remote-destination host="${jboss.mail.server.host:localhost}" port="${jboss.mail.server.port:25}"/>
         </outbound-socket-binding>
         <outbound-socket-binding name="remote-ejb">
-            <remote-destination host="remote-ejb-2" port="8080"/>
+            <remote-destination host="remote-ejb-2-0.remote-ejb-2-headless" port="8080"/>
         </outbound-socket-binding>
     </socket-binding-group>
 </server>
