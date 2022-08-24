@@ -17,18 +17,16 @@ public class RemoteABean implements RemoteA {
 
     private static final String INSERT_SQL = "INSERT INTO book (id, insertedBy, title) VALUES (?, ?, ?)";
 
-    @Resource(lookup="java:jboss/datasources/PostgresDS")
+//    @Resource(lookup="java:jboss/datasources/PostgresDS")
+    @Resource(lookup="java:jboss/datasources/PostgresXADS")
     private DataSource ds;
 
     private RemoteB remoteB;
 
     @PostConstruct
     public void init() {
-        Hashtable<String, String> jndiProps = new Hashtable<>();
-        jndiProps.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
-
         try {
-            Context context = new InitialContext(jndiProps);
+            Context context = new InitialContext();
             this.remoteB = (RemoteB) context.lookup("ejb:/remote-ejb-2/RemoteBBean!" + RemoteB.class.getName());
         } catch (NamingException e) {
             e.printStackTrace();
