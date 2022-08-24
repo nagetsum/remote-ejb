@@ -12,7 +12,8 @@ public class RemoteBBean implements RemoteB {
 
     private static final String INSERT_SQL = "INSERT INTO book (id, insertedBy, title) VALUES (?, ?, ?)";
 
-    @Resource(lookup = "java:jboss/datasources/PostgresDS")
+//    @Resource(lookup = "java:jboss/datasources/PostgresDS")
+    @Resource(lookup = "java:jboss/datasources/PostgresXADS")
     private DataSource ds;
 
     @Override
