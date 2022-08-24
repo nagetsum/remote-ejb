@@ -14,11 +14,8 @@ public class DelegateBean {
 
     // NOTE: The following code is not thread safe. This is for test.
     public int callRemoteBean() {
-        Hashtable<String, String> jndiProps = new Hashtable<>();
-        jndiProps.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
-
         try {
-            Context context = new InitialContext(jndiProps);
+            Context context = new InitialContext();
             RemoteA remoteA = (RemoteA) context.lookup("ejb:/remote-ejb-1/RemoteABean!" + RemoteA.class.getName());
             remoteA.addAndCommit(cnt.incrementAndGet(), "test book " + cnt.get());
         } catch (NamingException e) {
