@@ -472,7 +472,7 @@
         <subsystem xmlns="urn:jboss:domain:jdr:1.0"/>
         <subsystem xmlns="urn:jboss:domain:jgroups:8.0">
             <channels default="ee">
-                <channel name="ee" stack="tcp"/>
+                <channel name="ee" stack="tcp" cluster="ejb"/>
             </channels>
             <stacks>
                 <stack name="tcp">
