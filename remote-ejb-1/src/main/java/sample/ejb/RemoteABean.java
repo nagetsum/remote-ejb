@@ -46,5 +46,7 @@ public class RemoteABean implements RemoteA {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+
+        System.out.println("### RemoteABean.addAndCommit done");
     }
 }

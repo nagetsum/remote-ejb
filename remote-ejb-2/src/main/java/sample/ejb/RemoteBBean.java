@@ -27,5 +27,6 @@ public class RemoteBBean implements RemoteB {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+        System.out.println("### RemoteBBean.addAndCommit done");
     }
 }
