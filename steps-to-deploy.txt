@@ -1,0 +1,196 @@
+* 例ではプロジェクト test に JBoss EAP Operator をインストールする
+* A -> B -> C のようなリモートEJBによるチェーン呼び出しを実行する
+
+---
+事前準備:
+* 1つ3Gi以上のPersistentVolumeを事前に4つは用意する。デプロイが完了すると、以下のように4つは消費される。
+
+$ oc get pv
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM                                     STORAGECLASS   REASON   AGE
+pv01   10Gi       RWO            Retain           Bound       test/remote-ejb-2-volume-remote-ejb-2-0                           137m
+pv02   10Gi       RWO            Retain           Bound       test/remote-ejb-1-volume-remote-ejb-1-1                           137m
+pv03   10Gi       RWO            Retain           Bound       test/remote-ejb-1-volume-remote-ejb-1-0                           137m
+pv04   10Gi       RWO            Retain           Bound       test/remote-ejb-2-volume-remote-ejb-2-1                           137m
+pv05   10Gi       RWO            Retain           Available                                                                     137m
+
+* OCPクラスタからNW到達可能な範囲に PostgreSQL 13 を起動し、データベース名 test として起動し、テーブル book を作成しておく。
+
+test=# \d book
+                         Table "public.book"
+   Column   |          Type          | Collation | Nullable | Default 
+------------+------------------------+-----------+----------+---------
+ id         | integer                |           | not null | 
+ insertedby | character varying(100) |           | not null | 
+ title      | character varying(100) |           |          | 
+Indexes:
+    "book_pkey" PRIMARY KEY, btree (id, insertedby)
+
+* PostgreSQL ではデフォルトではXAが無効化されているため、 max_prepared_transactionsをデフォルト 0 から拡大してXAが利用可能とする。
+max_prepared_transactions = 100
+
+
+---
+$ oc new-project test
+
+// TemplateおよびImageStreamのインポート
+$ oc apply -f https://raw.githubusercontent.com/jboss-container-images/jboss-eap-openshift-templates/eap74/eap74-openjdk8-image-stream.json
+$ oc apply -f https://raw.githubusercontent.com/jboss-container-images/jboss-eap-openshift-templates/master/eap-s2i-build.yaml
+$ oc apply -f https://raw.githubusercontent.com/jboss-container-images/jboss-eap-openshift-templates/eap74/templates/eap74-basic-s2i.json
+
+// EAP Operatorで起動するPodにおいて、KUBE_PINGを利用可能とするために ServiceAccount: default に対してコントローラノードで起動するAPIへの参照権限を追加する
+$ role_binding.yaml
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: view
+subjects:
+- kind: ServiceAccount
+  name: default
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io
+$ oc apply -f role_binding.yaml
+
+// データソースの宛て先を Service 経由の external-db.test.svc.cluster.local でDNS解決するためのService設定。これはオプショナルな手順。
+$ cat svc-external-db.yaml 
+kind: Service
+apiVersion: v1
+metadata:
+  name: external-db
+spec:
+  clusterIP: None
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: external-db
+subsets:
+  - addresses:
+    - ip: ***.***.***.*** <<<=== OCPクラスタから到達可能なPostgreSQLのIPアドレス 
+    ports:
+    - port: 5432
+
+// JBoss EAP Operator 2.3.4 のインストール
+// Operatorアップデートの更新を Manual とする場合、OperatorGroupとSubscriptionの両方を作成する
+// OperatorGroupを作成していないと、後述の Approve ボタンがWebコンソールで表示されず、JBoss EAP Operator のインストールと、CRDのWildFlyServerの作成ができない
+$ cat operator-group.yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: my-group
+  namespace: test
+spec:
+  targetNamespaces:
+  - test
+$ oc apply -f operator-group.yaml
+
+$ cat eap-operator-sub.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: eap
+spec:
+  channel: stable
+  installPlanApproval: Manual
+  name: eap
+  source:  redhat-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: eap-operator.v2.3.4
+$ oc apply -f eap-operator-sub.yaml
+
+// installPlanApproval: Manual をして自動アップデートを無効化した場合、installplanを明示的にapproveするまでOperatorはインストールされない
+$ oc get installplan
+NAME            CSV                   APPROVAL   APPROVED
+install-hbqnf   eap-operator.v2.3.4   Manual     false
+
+$ oc patch installplan install-hbqnf --type merge -p '{"spec":{"approved":true}}'
+
+// リモートEJBクラスタを組む、JBoss EAP Operator 管理のアプリケーション remote-ejb-1 のS2Iビルド
+// standalone-openshift.xmlは、テンプレートによるデプロイ時と同様にS2Iビルド時にgitリポジトリからコンテナ内に取り込める
+$ oc process eap-s2i-build \
+  -p APPLICATION_IMAGE=remote-ejb-1 \
+  -p EAP_IMAGE=jboss-eap74-openjdk8-openshift:7.4.0 \
+  -p EAP_RUNTIME_IMAGE=jboss-eap74-openjdk8-runtime-openshift:7.4.0 \
+  -p EAP_IMAGESTREAM_NAMESPACE=$(oc project -q) \
+  -p SOURCE_REPOSITORY_URL=https://github.com/nagetsum/remote-ejb.git \
+  -p SOURCE_REPOSITORY_REF=master \
+  -p CONTEXT_DIR=remote-ejb-1 | oc create -f -
+
+// volumeClaimTemplate を設定しないと、PVCは作成されず、JBOSS_HOME/standalone/data に置かれたトランザクションログはPod終了時に消える
+// XAリカバリが不要(@ClientTransaction(ClientTransactionPolicy.NOT_SUPPORTED) が明示的にコードに付与) な場合は storage の設定は省略できる
+// StatefulSet と Service は Operator によって自動生成される、ユーザによる編集は許容されない
+$ cat remote-ejb-1.yaml 
+apiVersion: wildfly.org/v1alpha1
+kind: WildFlyServer
+metadata:
+  name: remote-ejb-1
+spec:
+  applicationImage: 'remote-ejb-1:latest'
+  replicas: 2
+  env:
+    - name: JAVA_OPTS_APPEND
+      value: "-Dwildfly.config.url=$JBOSS_HOME/standalone/configuration/eap-config.xml"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  storage:
+    volumeClaimTemplate:
+      spec:
+        resources:
+          requests:
+            storage: 3Gi
+
+$ oc apply -f remote-ejb-1.yaml
+
+// リモートEJBクラスタを組む、JBoss EAP Operator 管理のアプリケーション remote-ejb-2 のS2Iビルド
+$ oc process eap-s2i-build \
+  -p APPLICATION_IMAGE=remote-ejb-2 \
+  -p EAP_IMAGE=jboss-eap74-openjdk8-openshift:7.4.0 \
+  -p EAP_RUNTIME_IMAGE=jboss-eap74-openjdk8-runtime-openshift:7.4.0 \
+  -p EAP_IMAGESTREAM_NAMESPACE=$(oc project -q) \
+  -p SOURCE_REPOSITORY_URL=https://github.com/nagetsum/remote-ejb.git \
+  -p SOURCE_REPOSITORY_REF=master \
+  -p CONTEXT_DIR=remote-ejb-2 | oc create -f -
+
+$ cat remote-ejb-2.yaml 
+apiVersion: wildfly.org/v1alpha1
+kind: WildFlyServer
+metadata:
+  name: remote-ejb-2
+spec:
+  applicationImage: 'remote-ejb-2:latest'
+  replicas: 2
+  env:
+    - name: JAVA_OPTS_APPEND
+      value: "-Dwildfly.config.url=$JBOSS_HOME/standalone/configuration/eap-config.xml"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  storage:
+    volumeClaimTemplate:
+      spec:
+        resources:
+          requests:
+            storage: 3Gi
+
+$ oc apply -f remote-ejb-2.yaml
+
+// Operator管理ではない、リモートEJBクライアント側のアプリケーション ejb-client-web はテンプレートでデプロイ
+$ oc new-app --template=eap74-basic-s2i \
+ -p APPLICATION_NAME=ejb-client-web \
+ -p IMAGE_STREAM_NAMESPACE=test \
+ -p EAP_IMAGE_NAME=jboss-eap74-openjdk8-openshift:7.4.0 \
+ -p EAP_RUNTIME_IMAGE_NAME=jboss-eap74-openjdk8-runtime-openshift:7.4.0 \
+ -p SOURCE_REPOSITORY_URL=https://github.com/nagetsum/remote-ejb.git \
+ -p SOURCE_REPOSITORY_REF=master \
+ -p CONTEXT_DIR=ejb-client-web \
+ -e JAVA_OPTS_APPEND='-Dwildfly.config.url=$JBOSS_HOME/standalone/configuration/eap-config.xml'
+
+// route にリクエストを投げると A->B->C のリモートEJBリクエストは正常にパスする
+$ curl -k https://ejb-client-web-test.apps.nagetsum-ocp.nagetsum.gss.cee.redhat.com/ejb-client-web/test
+add book done. No: 1
+$ curl -k https://ejb-client-web-test.apps.nagetsum-ocp.nagetsum.gss.cee.redhat.com/ejb-client-web/test
+add book done. No: 2
