@@ -488,7 +488,16 @@
         <subsystem xmlns="urn:jboss:domain:remoting:4.0">
             <http-connector name="http-remoting-connector" connector-ref="default" security-realm="ApplicationRealm"/>
             <outbound-connections>
-                <remote-outbound-connection name="remote-ejb-connection" outbound-socket-binding-ref="remote-ejb" username="quickuser1" security-realm="ejb-security-realm" protocol="http-remoting">
+                <remote-outbound-connection name="remote-ejb-connection-0" outbound-socket-binding-ref="remote-ejb-1-0" username="quickuser1" security-realm="ejb-security-realm" protocol="http-remoting">
+                    <properties>
+                        <property name="SASL_POLICY_NOANONYMOUS" value="false"/>
+                        <property name="SSL_ENABLED" value="false"/>
+                        <property name="org.jboss.remoting3.RemotingOptions.HEARTBEAT_INTERVAL" value="50000"/>
+                        <property name="KEEP_ALIVE" value="true"/>
+                        <property name="READ_TIMEOUT" value="60000"/>
+                    </properties>
+                </remote-outbound-connection>
+                <remote-outbound-connection name="remote-ejb-connection-1" outbound-socket-binding-ref="remote-ejb-1-1" username="quickuser1" security-realm="ejb-security-realm" protocol="http-remoting">
                     <properties>
                         <property name="SASL_POLICY_NOANONYMOUS" value="false"/>
                         <property name="SSL_ENABLED" value="false"/>
@@ -612,8 +621,11 @@
         <outbound-socket-binding name="mail-smtp">
             <remote-destination host="${jboss.mail.server.host:localhost}" port="${jboss.mail.server.port:25}"/>
         </outbound-socket-binding>
-        <outbound-socket-binding name="remote-ejb">
+        <outbound-socket-binding name="remote-ejb-1-0">
             <remote-destination host="remote-ejb-1-0.remote-ejb-1-headless" port="8080"/>
+        </outbound-socket-binding>
+        <outbound-socket-binding name="remote-ejb-1-1">
+            <remote-destination host="remote-ejb-1-1.remote-ejb-1-headless" port="8080"/>
         </outbound-socket-binding>
     </socket-binding-group>
 </server>
